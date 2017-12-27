@@ -1,24 +1,68 @@
 <!doctype html>
 
-<html lang="en">
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" >
 
     <title>QQ Number Crawler</title>
     <meta name="description" content="This is a crawler for qq numbers.">
     <meta name="author" content="Yihuan Dong">
 
-    <!-- <link rel="stylesheet" href="css/styles.css?v=1.0"> -->
-    <script src="js/scripts.js"></script>
+    <script src="js/jquery-3.2.1.min.js"></script>
+    <script src = "js/fileParser.js"></script>
 </head>
 
 <body>
     <div id = "div-selector">
-        <form id = "form-selector" action = "#">
-            Choose the index File: <br />
-            <input type = "file" name = "file" /> <br />
-            <input type = "submit" name = "submit" />
-        </form>
+        <input type = "file" name = "files" multiple onchange = "updateFiles(event)"/>
+        <input type = "button" name = "parse" value = "开始" onclick = "parseFiles()"/>
+        <input type = "button" name = "save" value = "保存结果" onclick = "save()"/>
     </div>
+    <div id = "result">
+
+    </div>
+
+    <script type = "text/javascript">
+        var fileList = null;
+        var result = [];
+
+        function updateFiles(event) {
+            fileList = event.target.files;
+        }
+
+        function parseFiles () {
+            if (!fileList || fileList.length == 0) {
+                alert("请先选择文件。");
+                return;
+            }
+            for (let i = 0; i < fileList.length; i++) {
+                var file = fileList[i];
+                var reader = new FileReader();
+                
+                reader.onload = function (event) {
+                    processHtmlString(event.target.result);
+                }
+
+                reader.readAsText(file, "gb2312");
+            }
+        }
+
+        function processHtmlString (htmlString) {
+            if (!htmlString) {
+                console.log("No html string is given!");
+                return;
+            }
+
+            // var html = $.parseHTML(htmlString);
+            // console.log(html);
+            var contents = $(htmlString).find("div.gray.box");
+
+            console.log(contents);
+        }
+        
+        function save () {
+            alert("Save button clicked!");
+        }
+    </script>
 </body>
 </html>
