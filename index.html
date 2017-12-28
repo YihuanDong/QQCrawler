@@ -2,12 +2,13 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" >
+    <meta http-equiv="Content-Type" content="text/html; charset=gb2312" >
 
     <title>QQ Number Crawler</title>
     <meta name="description" content="This is a crawler for qq numbers.">
     <meta name="author" content="Yihuan Dong">
 
+    <link href="css/style.css" rel="stylesheet" type="text/css" >
     <script src="js/jquery-3.2.1.min.js"></script>
     <script src = "js/fileParser.js"></script>
 </head>
@@ -15,32 +16,50 @@
 <body>
     <div id = "div-selector">
         <input type = "file" name = "files" multiple onchange = "updateFiles(event)"/>
-        <input type = "button" name = "parse" value = "å¼€å§‹" onclick = "parseFiles()"/>
-        <input type = "button" name = "save" value = "ä¿å­˜ç»“æžœ" onclick = "save()"/>
+        <input type = "button" name = "parse" value = "¿ªÊ¼" onclick = "parseFiles()"/>
+        <input type = "button" name = "save" value = "±£´æ½á¹û" onclick = "save()"/>
     </div>
     <div id = "result">
-
+        <table id = "result-table">
+            <tr>
+                <th>±àºÅ</th>
+                <th>¹«Ë¾Ãû³Æ</th>
+                <th>QQ</th>
+                <th>QQÓÊÏä</th>
+                <th>ÁªÏµ·½Ê½</th>
+            </tr>
+          </table>
     </div>
 
     <script type = "text/javascript">
         var fileList = null;
         var result = [];
 
+        $("input[name=save]").attr("disabled", "disabled");
+
         function updateFiles(event) {
             fileList = event.target.files;
         }
 
         function parseFiles () {
-            if (!fileList || fileList.length == 0) {
-                alert("è¯·å…ˆé€‰æ‹©æ–‡ä»¶ã€‚");
+            if (!fileList || fileList.length === 0) {
+                alert("ÇëÏÈÑ¡ÔñÎÄ¼þ¡£");
                 return;
             }
+
+            var processedFiles = 0;
+            
             for (let i = 0; i < fileList.length; i++) {
                 var file = fileList[i];
                 var reader = new FileReader();
                 
                 reader.onload = function (event) {
                     processHtmlString(event.target.result);
+                    processedFiles++;
+
+                    if (processedFiles === fileList.length) {
+                        displayResult();
+                    }
                 }
 
                 reader.readAsText(file, "gb2312");
@@ -53,11 +72,131 @@
                 return;
             }
 
-            // var html = $.parseHTML(htmlString);
-            // console.log(html);
             var contents = $(htmlString).find("div.gray.box");
 
-            console.log(contents);
+            for (let i = 0, j = 0; i < contents.length; i++) {
+                if (!contents[i]) continue;
+
+                var content = contents[i];
+
+                if (isProduction(content) && hasQQ(content)) {
+                    var companyInfo = {};
+
+                    companyInfo.name = getCompanyName(content);
+                    companyInfo.qq = getCompanyQQ(content);
+                    companyInfo.email = companyInfo.qq + "@qq.com";
+                    companyInfo.url = getCompanyUrl(content);
+
+                    result.push(companyInfo);
+                } 
+            }
+
+        }
+
+        function displayResult() {
+            clearResultTable();
+
+            for (let i = 0; i < result.length; i++) {
+                $("#result-table")
+                    .append($("<tr>")
+                        .append($("<td>").text(i+1))
+                        .append($("<td>").text(result[i].name))
+                        .append($("<td>").text(result[i].qq))
+                        .append($("<td>").text(result[i].email))
+                        .append($("<td>")
+                            .append($("<a>")
+                                .text("Link")
+                                .attr("href", result[i].url)
+                                .attr("target", "_blank"))));
+            }
+
+            console.log(result);
+        }
+
+        function clearResultTable() {
+            $("#result-table").html("<tr>" +
+                "<th>±àºÅ</th>" +
+                "<th>¹«Ë¾Ãû³Æ</th>" +
+                "<th>QQ</th>" +
+                "<th>QQÓÊÏä</th>" +
+                "<th>ÁªÏµ·½Ê½</th>" +
+            "</tr>");
+        }
+
+        function getCompanyUrl(content) {
+            return $(content).find("div.sell_mn_contact a").attr("href");
+        }
+
+        // get the name of the company
+        function getCompanyName(content) {
+            var spans = $(content).find("div.sell_mn_txt span");
+
+            if (spans.length == 0) {
+                console.log("No span in the content!");
+                console.log(spans);
+                return null;
+            } 
+
+            if (spans.length > 1) {
+                console.log("More spans than expected!");
+                console.log(spans);
+            }
+
+            var stopIndex = spans[0].textContent.indexOf("[");
+            
+            return spans[0].textContent.substring(0, stopIndex).trim();
+        }
+
+        // get the qq number of the company
+        function getCompanyQQ(content) {
+            if (!hasQQ(content)) {
+                return null;
+            }
+
+            var div = $(content).find("div.sell_message");
+            
+            return $(div[0].children[0]).find("img")[0].getAttribute("alt");
+        }
+
+        // check if the company has QQ number
+        function hasQQ(content) {
+            var div = $(content).find("div.sell_message");
+
+            if (div.length == 0) {
+                console.log("No contact div in the content!");
+                console.log(div);
+                return false;
+            }
+
+            if (div.length > 1) {
+                console.log("More contact div than expected!");
+                console.log(div);
+            }
+
+            return div[0].children.length > 2;
+        }
+
+        // check if the company is Éú²úÐÍ
+        function isProduction(content) {
+            var spans = $(content).find("div.sell_mn_txt span");
+
+            if (spans.length == 0) {
+                console.log("No span in the content!");
+                console.log(spans);
+                return false;
+            }
+
+            if (spans.length > 1) {
+                console.log("More spans than expected!");
+                console.log(spans);
+            }
+
+            return spans[0].textContent.indexOf("Éú²úÐÍ") >= 0;
+        }
+
+        // save
+        function saveToResult(content) {
+            
         }
         
         function save () {
